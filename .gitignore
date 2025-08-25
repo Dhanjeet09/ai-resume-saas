@@ -1,0 +1,120 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# =====================
+# Dependencies
+# =====================
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# =====================
+# Testing
+# =====================
+coverage/
+.jest/
+.vitest/
+
+# =====================
+# Next.js
+# =====================
+.next/
+out/
+.next/cache/
+.next/static/
+
+# =====================
+# Build / Production
+# =====================
+build/
+dist/
+*.tar.gz
+
+# =====================
+# Misc / OS Junk
+# =====================
+.DS_Store
+Thumbs.db
+*.pem
+*.swp
+*.swo
+*.bak
+*.tmp
+*.log
+logs/
+*.pid
+*.seed
+*.pid.lock
+
+# =====================
+# Debug Logs
+# =====================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# =====================
+# Environment & Secrets
+# =====================
+.env
+.env.*
+!.env.example
+firebase-key.json
+*.secret.*
+*.key
+*.cert
+
+# =====================
+# Vercel / Deployment
+# =====================
+.vercel
+.vercel_build_output/
+
+# =====================
+# TypeScript (if added later)
+# =====================
+*.tsbuildinfo
+next-env.d.ts
+
+# =====================
+# IDE / Editor Config
+# =====================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.iml
+*.sublime-workspace
+*.sublime-project
+
+# =====================
+# Docker / Containers
+# =====================
+.docker/
+docker-compose.override.yml
+docker-compose.dev.yml
+
+# =====================
+# AWS / Cloud
+# =====================
+.aws/
+*.tfstate
+*.tfstate.backup
+
+# =====================
+# Cache
+# =====================
+.cache/
+.eslintcache
+.stylelintcache
+.prettier-cache
