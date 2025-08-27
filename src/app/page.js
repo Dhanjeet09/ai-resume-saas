@@ -2,7 +2,7 @@
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Upload, BarChart3, Briefcase, FileText, User } from "lucide-react";
+import { Upload, BarChart3, Briefcase, FileText, User, MessageCircle } from "lucide-react";
 import { ResumeUpload } from "@/components/features/ResumeUpload";
 import { ResumeAnalysis } from "@/components/features/ResumeAnalysis";
 import { Button } from "@/components/ui/Button";
@@ -15,6 +15,7 @@ export default function Dashboard() {
   const [matchResult, setMatchResult] = useState(null);
   const [coverLetter, setCoverLetter] = useState("");
   const [jdSummary, setJdSummary] = useState("");
+  const [interviewQAs, setInterviewQAs] = useState([]);
 
   if (status === "loading") {
     return (
@@ -54,72 +55,79 @@ export default function Dashboard() {
   }
 
   const handleJobMatch = async () => {
-    if (!resumeText || !jobDescription) return
-
+    if (!resumeText || !jobDescription) return;
     try {
-      const response = await fetch('/api/job/match', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/job/match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resumeText, jobDescription }),
-      })
-
-      const result = await response.json()
-      if (result.success) {
-        setMatchResult(result.matchResult)
-      }
+      });
+      const result = await response.json();
+      if (result.success) setMatchResult(result.matchResult);
     } catch (error) {
-      console.error('Job match failed:', error)
+      console.error("Job match failed:", error);
     }
-  }
+  };
 
   const generateCoverLetter = async () => {
-    if (!resumeText || !jobDescription) return
-
+    if (!resumeText || !jobDescription) return;
     try {
-      const response = await fetch('/api/ai/cover-letter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          resumeText, 
-          jobDescription, 
-          companyName: 'Target Company' 
+      const response = await fetch("/api/ai/cover-letter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resumeText,
+          jobDescription,
+          companyName: "Target Company",
         }),
-      })
-
-      const result = await response.json()
-      if (result.success) {
-        setCoverLetter(result.coverLetter)
-      }
+      });
+      const result = await response.json();
+      if (result.success) setCoverLetter(result.coverLetter);
     } catch (error) {
-      console.error('Cover letter generation failed:', error)
+      console.error("Cover letter generation failed:", error);
     }
-  }
+  };
 
   const summarizeJD = async () => {
-    if (!jobDescription) return
-
+    if (!jobDescription) return;
     try {
-      const response = await fetch('/api/ai/summarize-jd', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/ai/summarize-jd", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jobDescription }),
-      })
-
-      const result = await response.json()
-      if (result.success) {
-        setJdSummary(result.summary)
-      }
+      });
+      const result = await response.json();
+      if (result.success) setJdSummary(result.summary);
     } catch (error) {
-      console.error('JD summarization failed:', error)
+      console.error("JD summarization failed:", error);
     }
-  }
+  };
 
+  const generateInterviewQAs = async () => {
+    if (!resumeText || !jobDescription) return;
+    try {
+      const response = await fetch("/api/ai/interview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobTitle: "Software Engineer", // you could let user input this
+          resumeText,
+          numQuestions: 5,
+        }),
+      });
+      const result = await response.json();
+      if (result.success) setInterviewQAs(result.questions);
+    } catch (error) {
+      console.error("Interview Q&A generation failed:", error);
+    }
+  };
 
   const tabs = [
     { id: "upload", label: "Upload Resume", icon: Upload },
     { id: "analyze", label: "AI Analysis", icon: BarChart3 },
     { id: "match", label: "Job Match", icon: Briefcase },
     { id: "tools", label: "AI Tools", icon: FileText },
+    { id: "interview", label: "Interview Prep", icon: MessageCircle },
   ];
 
   return (
@@ -187,16 +195,14 @@ export default function Dashboard() {
         >
           {activeTab === "upload" && (
             <ResumeUpload
-              onUploadSuccess={(text, fileUrl) => {
+              onUploadSuccess={(text) => {
                 setResumeText(text);
                 setActiveTab("analyze");
               }}
             />
           )}
 
-          {activeTab === "analyze" && (
-            <ResumeAnalysis resumeText={resumeText} />
-          )}
+          {activeTab === "analyze" && <ResumeAnalysis resumeText={resumeText} />}
 
           {activeTab === "match" && (
             <div className="bg-white/80 backdrop-blur-lg rounded-xl shadow-xl p-8 border border-gray-100">
@@ -344,6 +350,42 @@ export default function Dashboard() {
                     {coverLetter}
                   </div>
                 </motion.div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "interview" && (
+            <div className="bg-white/80 backdrop-blur-lg rounded-xl shadow-lg p-8 border border-gray-100">
+              <h2 className="text-xl font-semibold mb-4 text-indigo-700">
+                 Interview Prep
+              </h2>
+              <Button
+                onClick={generateInterviewQAs}
+                disabled={!resumeText || !jobDescription}
+                className="mb-6"
+              >
+                Generate Interview Questions
+              </Button>
+
+              {interviewQAs.length > 0 && (
+                <div className="space-y-6">
+                  {interviewQAs.map((qa, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="p-6 bg-gray-50 rounded-lg shadow border border-gray-200"
+                    >
+                      <p className="font-semibold text-gray-800">
+                        Q{idx + 1}: {qa.question}
+                      </p>
+                      <p className="text-gray-700 mt-2 text-sm leading-relaxed">
+                        💡 {qa.answer}
+                      </p>
+                    </motion.div>
+                  ))}
+                </div>
               )}
             </div>
           )}
