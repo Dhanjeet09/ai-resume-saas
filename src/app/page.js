@@ -11,6 +11,8 @@ export default function Dashboard() {
   const { data: session, status } = useSession();
   const [activeTab, setActiveTab] = useState("upload");
   const [resumeText, setResumeText] = useState("");
+  const [resumeId, setResumeId] = useState(null);
+  const [resumeUrl, setResumeUrl] = useState(""); 
   const [jobDescription, setJobDescription] = useState("");
   const [matchResult, setMatchResult] = useState(null);
   const [coverLetter, setCoverLetter] = useState("");
@@ -195,14 +197,22 @@ export default function Dashboard() {
         >
           {activeTab === "upload" && (
             <ResumeUpload
-              onUploadSuccess={(text) => {
+              onUploadSuccess={(text, url, id, nextTab) => {
                 setResumeText(text);
-                setActiveTab("analyze");
+                setResumeUrl(url);
+                setResumeId(id);
+                setActiveTab(nextTab || "analyze");  
               }}
             />
           )}
 
-          {activeTab === "analyze" && <ResumeAnalysis resumeText={resumeText} />}
+          {activeTab === "analyze" && (
+            <ResumeAnalysis 
+              resumeText={resumeText} 
+              resumeId={resumeId}  
+            />
+          )}
+
 
           {activeTab === "match" && (
             <div className="bg-white/80 backdrop-blur-lg rounded-xl shadow-xl p-8 border border-gray-100">
@@ -327,7 +337,7 @@ export default function Dashboard() {
           {activeTab === "tools" && (
             <div className="bg-white/80 backdrop-blur-lg rounded-xl shadow-lg p-8 border border-gray-100">
               <h2 className="text-xl font-semibold mb-4 text-indigo-700">
-                 AI Cover Letter Generator
+                AI Cover Letter Generator
               </h2>
               <Button
                 onClick={() => generateCoverLetter()}
@@ -357,7 +367,7 @@ export default function Dashboard() {
           {activeTab === "interview" && (
             <div className="bg-white/80 backdrop-blur-lg rounded-xl shadow-lg p-8 border border-gray-100">
               <h2 className="text-xl font-semibold mb-4 text-indigo-700">
-                 Interview Prep
+                Interview Prep
               </h2>
               <Button
                 onClick={generateInterviewQAs}

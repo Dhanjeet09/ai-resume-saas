@@ -1,28 +1,71 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BarChart3, CheckCircle, AlertCircle, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { motion } from "motion/react"
 
-export function ResumeAnalysis({ resumeText }) {
+export function ResumeAnalysis({ resumeText, resumeId }) {
   const [analysis, setAnalysis] = useState(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
 
-  const handleAnalyze = async () => {
-    setIsAnalyzing(true)
-    try {
-      const response = await fetch('/api/resume/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resumeText }),
-      })
+  // Auto-analyze when resumeText or resumeId changes
+  useEffect(() => {
+    const analyzeResume = async () => {
+      // Check if we have saved analysis first
+      const saved = localStorage.getItem(`analysis-${resumeId || 'text'}`)
+      if (saved) {
+        setAnalysis(JSON.parse(saved))
+        return
+      }
 
+      // If no saved analysis and we have resume data, start auto-analysis
+      if (resumeText || resumeId) {
+        setIsAnalyzing(true)
+        try {
+          const response = await fetch("/api/resume/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(resumeText ? { resumeText } : { resumeId }),
+          })
+          const result = await response.json()
+          if (result.success) {
+            setAnalysis(result.analysis)
+            localStorage.setItem(
+              `analysis-${resumeId || 'text'}`,
+              JSON.stringify(result.analysis)
+            )
+          }
+        } catch (error) {
+          console.error("Auto-analysis failed:", error)
+        } finally {
+          setIsAnalyzing(false)
+        }
+      }
+    }
+
+    analyzeResume()
+  }, [resumeText, resumeId]) // Dependencies: run when resumeText or resumeId changes
+
+  const handleReanalyze = async () => {
+    setIsAnalyzing(true)
+    setAnalysis(null) // Clear existing analysis
+    
+    try {
+      const response = await fetch("/api/resume/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(resumeText ? { resumeText } : { resumeId }),
+      })
       const result = await response.json()
       if (result.success) {
         setAnalysis(result.analysis)
+        localStorage.setItem(
+          `analysis-${resumeId || 'text'}`,
+          JSON.stringify(result.analysis)
+        )
       }
     } catch (error) {
-      console.error('Analysis failed:', error)
+      console.error("Re-analysis failed:", error)
     } finally {
       setIsAnalyzing(false)
     }
@@ -30,23 +73,39 @@ export function ResumeAnalysis({ resumeText }) {
 
   return (
     <div className="bg-gradient-to-br from-white to-blue-50 rounded-2xl shadow-xl p-8 border border-gray-200">
-      <h2 className="text-3xl font-extrabold mb-6 flex items-center gap-3 text-gray-900">
-        <BarChart3 className="w-7 h-7 text-blue-600" />
-        AI Resume Analysis
-      </h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-extrabold flex items-center gap-3 text-gray-900">
+          <BarChart3 className="w-7 h-7 text-blue-600" />
+          AI Resume Analysis
+        </h2>
+        
+        {/* Re-analyze button - only show when analysis exists */}
+        {analysis && !isAnalyzing && (
+          <Button 
+            onClick={handleReanalyze}
+            variant="outline"
+            size="sm"
+            className="text-blue-600 border-blue-300 hover:bg-blue-50"
+          >
+            Re-analyze
+          </Button>
+        )}
+      </div>
       
-      {!analysis ? (
+      {isAnalyzing ? (
+        <div className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-gray-600 text-lg">
+            Analyzing your resume with AI...
+          </p>
+        </div>
+      ) : !analysis ? (
         <div className="text-center py-12">
           <p className="text-gray-600 mb-6 text-lg">
-            Get AI-powered insights about your resume instantly.
+            {resumeText || resumeId 
+              ? "Analysis will start automatically..." 
+              : "Upload a resume to get AI-powered insights."}
           </p>
-          <Button 
-            onClick={handleAnalyze} 
-            disabled={isAnalyzing || !resumeText}
-            className="px-8 py-3 text-lg rounded-xl shadow-md hover:shadow-lg hover:bg-blue-700 transition-all"
-          >
-            {isAnalyzing ? 'Analyzing...' : 'Start Analysis'}
-          </Button>
         </div>
       ) : (
         <motion.div
@@ -126,11 +185,10 @@ export function ResumeAnalysis({ resumeText }) {
                 {analysis.missingSkills.map((skill, idx) => (
                   <span
                     key={idx}
-                    whileHover={{ scale: 1.08 }}
                     className="px-4 py-2 bg-red-100 text-red-700 
                                rounded-full text-sm font-medium 
                                shadow hover:shadow-md border border-red-200
-                               transition"
+                               transition hover:scale-105"
                   >
                     {skill}
                   </span>
