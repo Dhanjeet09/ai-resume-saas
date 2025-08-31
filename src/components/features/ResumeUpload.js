@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Upload, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { motion, AnimatePresence } from "motion/react"
@@ -7,11 +7,25 @@ import { motion, AnimatePresence } from "motion/react"
 export function ResumeUpload({ onUploadSuccess }) {
   const [isUploading, setIsUploading] = useState(false)
   const [dragActive, setDragActive] = useState(false)
-  const [uploadedFiles, setUploadedFiles] = useState([]) 
+  const [resumes, setResumes] = useState([])
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/resume/upload')
+        const data = await res.json()
+        if (data.success) setResumes(data.resumes)
+      } catch (err) {
+        console.error('Failed to fetch resumes:', err)
+      }
+    })()
+  }, [])
 
   const handleFileUpload = async (file) => {
-    if (!file || file.type !== 'application/pdf') {
-      alert('Please upload a PDF file')
+    if (!file) return
+    const extOk = /\.(pdf|docx|txt)$/i.test(file.name)
+    if (!extOk) {
+      alert('Please upload a PDF, DOCX, or TXT file')
       return
     }
 
@@ -24,16 +38,23 @@ export function ResumeUpload({ onUploadSuccess }) {
         method: 'POST',
         body: formData,
       })
-
       const result = await response.json()
       if (result.success) {
-        setUploadedFiles((prev) => [...prev, { name: file.name, url: result.fileUrl }]) // 👈 save file info
-        onUploadSuccess(result.extractedText, result.fileUrl) // pass back file URL too
+        const newItem = {
+          _id: result.resumeId,
+          originalName: file.name,
+          url: result.fileUrl,
+          createdAt: new Date().toISOString(),
+          extractedText: result.extractedText || "",
+        }
+        setResumes(prev => [newItem, ...prev])
+        // pass extracted text and url to parent for reuse
+        onUploadSuccess?.(result.extractedText, result.fileUrl)
       } else {
-        alert('Upload failed: ' + result.error)
+        alert('Upload failed: ' + (result.error || 'Unknown'))
       }
-    } catch (error) {
-      console.error('Upload failed:', error)
+    } catch (err) {
+      console.error('Upload failed:', err)
       alert('Upload failed')
     } finally {
       setIsUploading(false)
@@ -43,11 +64,7 @@ export function ResumeUpload({ onUploadSuccess }) {
   const handleDrag = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true)
-    } else if (e.type === 'dragleave') {
-      setDragActive(false)
-    }
+    setDragActive(e.type === 'dragenter' || e.type === 'dragover')
   }
 
   const handleDrop = (e) => {
@@ -58,11 +75,15 @@ export function ResumeUpload({ onUploadSuccess }) {
     if (file) handleFileUpload(file)
   }
 
+  const handleSelectResume = (resume) => {
+  onUploadSuccess?.(resume.extractedText || "", resume.url, resume._id, "analyze");
+};
+
+
   return (
     <div className="bg-gradient-to-br from-white to-blue-50 rounded-2xl shadow-lg p-8 border border-gray-100">
       <h2 className="text-2xl font-bold mb-6 text-gray-800">Upload Resume</h2>
-      
-      {/* Upload Area */}
+
       <motion.div
         className={`relative border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all ${
           dragActive 
@@ -76,13 +97,13 @@ export function ResumeUpload({ onUploadSuccess }) {
       >
         <Upload className={`w-14 h-14 mx-auto mb-4 ${dragActive ? 'text-blue-500' : 'text-gray-400'}`} />
         <p className="text-gray-600 mb-4 text-lg">
-          Drag & drop your <span className="font-semibold">PDF resume</span> here  
+          Drag & drop your <span className="font-semibold">PDF, DOCX, TXT</span> resume here  
           <br /> or click to browse
         </p>
 
         <input
           type="file"
-          accept=".pdf"
+          accept=".pdf,.docx,.txt"
           onChange={(e) => handleFileUpload(e.target.files[0])}
           className="hidden"
           id="resume-upload"
@@ -95,7 +116,6 @@ export function ResumeUpload({ onUploadSuccess }) {
           {isUploading ? 'Uploading...' : 'Choose File'}
         </Button>
 
-        {/* Uploading Overlay */}
         <AnimatePresence>
           {isUploading && (
             <motion.div
@@ -110,31 +130,32 @@ export function ResumeUpload({ onUploadSuccess }) {
         </AnimatePresence>
       </motion.div>
 
-      {/* Uploaded Files List */}
-      {uploadedFiles.length > 0 && (
-        <div className="mt-6">
-          <h3 className="font-semibold text-gray-700 mb-3">📂 Uploaded Resumes</h3>
-          <ul className="space-y-3">
-            {uploadedFiles.map((file, idx) => (
-              <li
-                key={idx}
-                className="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm border hover:shadow-md transition"
-              >
-                <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-indigo-500" />
-                  <span className="text-gray-800 font-medium">{file.name}</span>
-                </div>
-                <a
-                  href={file.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-indigo-600 text-sm font-semibold hover:underline"
-                >
-                  View
-                </a>
-              </li>
-            ))}
-          </ul>
+      {/* Uploaded list */}
+      {resumes.length > 0 && (
+        <div className="mt-6 grid md:grid-cols-2 gap-4">
+          <div>
+            <h3 className="font-semibold text-gray-700 mb-3">📂 Your Uploaded Resumes</h3>
+            <ul className="space-y-3">
+              {resumes.map((r) => (
+                <li key={r._id} className="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm border hover:shadow-md transition">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-indigo-500" />
+                    <div>
+                      <div className="text-gray-800 font-medium">{r.originalName}</div>
+                      <div className="text-xs text-gray-500">{new Date(r.createdAt).toLocaleString()}</div>
+                    </div>
+                  </div>
+                  <div>
+                   <button 
+                     onClick={() => handleSelectResume(r)} 
+                     className="text-sm text-indigo-600 hover:underline">
+                     Reuse
+                   </button>
+                 </div>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
     </div>
