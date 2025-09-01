@@ -44,7 +44,7 @@ export function ResumeAnalysis({ resumeText, resumeId }) {
     }
 
     analyzeResume()
-  }, [resumeText, resumeId]) // Dependencies: run when resumeText or resumeId changes
+  }, [resumeText, resumeId,]) // Dependencies: run when resumeText or resumeId changes
 
   const handleReanalyze = async () => {
     setIsAnalyzing(true)
