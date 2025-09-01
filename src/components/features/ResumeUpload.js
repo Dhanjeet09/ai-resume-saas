@@ -40,17 +40,24 @@ export function ResumeUpload({ onUploadSuccess }) {
       })
       const result = await response.json()
       if (result.success) {
-        const newItem = {
-          _id: result.resumeId,
-          originalName: file.name,
-          url: result.fileUrl,
-          createdAt: new Date().toISOString(),
-          extractedText: result.extractedText || "",
-        }
-        setResumes(prev => [newItem, ...prev])
-        // pass extracted text and url to parent for reuse
-        onUploadSuccess?.(result.extractedText, result.fileUrl)
-      } else {
+  const newItem = {
+    _id: result.resumeId,
+    originalName: file.name,
+    url: result.fileUrl,
+    createdAt: new Date().toISOString(),
+    extractedText: result.extractedText || "",
+  }
+  setResumes(prev => [newItem, ...prev])
+  
+  // Pass extracted text, url, id, and nextTab
+  onUploadSuccess?.(
+    result.extractedText,
+    result.fileUrl,
+    result.resumeId,
+    "analyze"
+  )
+}
+ else {
         alert('Upload failed: ' + (result.error || 'Unknown'))
       }
     } catch (err) {
@@ -149,7 +156,7 @@ export function ResumeUpload({ onUploadSuccess }) {
                    <button 
                      onClick={() => handleSelectResume(r)} 
                      className="text-sm text-indigo-600 hover:underline">
-                     Reuse
+                     Use
                    </button>
                  </div>
                 </li>

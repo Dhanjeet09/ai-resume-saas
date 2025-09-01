@@ -201,7 +201,7 @@ export default function Dashboard() {
                 setResumeText(text);
                 setResumeUrl(url);
                 setResumeId(id);
-                setActiveTab(nextTab || "analyze");  
+                setActiveTab(nextTab || "");  
               }}
             />
           )}
